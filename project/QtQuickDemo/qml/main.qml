@@ -58,7 +58,6 @@
              text: parent.animatedValue
          }
      }
-
  }
 
 
