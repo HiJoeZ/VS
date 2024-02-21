@@ -4,6 +4,8 @@
 #include "wrapper/checkError.h"
 #include "application/Application.h"
 
+GLuint program = 0, VAO = 0;
+
 void onResize(int w, int h)
 {
     std::cout << "onResize" << std::endl;
@@ -112,7 +114,7 @@ void prepareInterleavedBuffer()
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
 
     //生成VAO并绑定
-    GLuint VAO = 0;
+    VAO = 0;
     GL_CALL(glGenVertexArrays(1, &VAO));
     GL_CALL(glBindVertexArray(VAO));
 
@@ -127,6 +129,93 @@ void prepareInterleavedBuffer()
     GL_CALL(glBindVertexArray(0));//解绑VAO
 }
 
+void prepareShader()
+{
+    //编写vs与fs的源代码字符串
+    const char* vertexShaderSource =
+        "#version 460 core\n"
+        "layout (location = 0) in vec3 aPos;\n"
+        "void main()\n"
+        "{\n"
+        "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+        "}\0";
+
+    const char* fragmentShaderSource =
+        "#version 330 core\n"
+        "out vec4 FragColor;\n"
+        "void main()\n"
+        "{\n"
+        "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+        "}\n\0";
+
+    //创建Shader程序（vs、fs)
+    GLuint vertex, fragment;
+    vertex = GL_CALL(glCreateShader(GL_VERTEX_SHADER));
+    fragment = GL_CALL(glCreateShader(GL_FRAGMENT_SHADER));
+
+    //为shader程序输入代码
+    GL_CALL(glShaderSource(vertex, 1, &vertexShaderSource, NULL));
+    GL_CALL(glShaderSource(fragment, 1, &fragmentShaderSource, NULL));
+
+    int success = 0;
+    char infoLog[1024];
+    //执行shader代码编译
+    GL_CALL(glCompileShader(vertex));
+    //检查vertex编译结果
+    GL_CALL(glGetShaderiv(vertex, GL_COMPILE_STATUS, &success));
+    if (!success)
+    {
+        GL_CALL(glGetShaderInfoLog(vertex, 1024, NULL, infoLog));
+        std::cout << "Error:Shader compile error --vertex\n" << infoLog << std::endl;
+    }
+
+    GL_CALL(glCompileShader(fragment));
+    //检查fragment编译结果
+    GL_CALL(glGetShaderiv(fragment, GL_COMPILE_STATUS, &success));
+    if (!success)
+    {
+        GL_CALL(glGetShaderInfoLog(fragment, 1024, NULL, infoLog));
+        std::cout << "Error:Shader compile error --fragment\n" << infoLog << std::endl;
+    }
+
+    //创建一个program壳子
+    program = GL_CALL(glCreateProgram());
+
+    //将vs与fs编译好的结果放到program壳子里
+    GL_CALL(glAttachShader(program, vertex));
+    GL_CALL(glAttachShader(program, fragment));
+
+    //执行program的链接操作，生成可执行shader程序
+    GL_CALL(glLinkProgram(program));
+
+    //检查链接错误
+    GL_CALL(glGetProgramiv(program, GL_LINK_STATUS, &success));
+    if (!success)
+    {
+        GL_CALL(glGetProgramInfoLog(program, 1024, NULL, infoLog));
+        std::cout << "Error:Shader link error\n" << infoLog << std::endl;
+    }
+
+    //清理链接完无用的shader
+    GL_CALL(glDeleteShader(vertex));
+    GL_CALL(glDeleteShader(fragment));
+}
+
+void render()
+{
+    //画布清理
+    GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
+
+    //绑定当前program
+    GL_CALL(glUseProgram(program));
+
+    //绑定当前VAO
+    GL_CALL(glBindVertexArray(VAO));
+
+    //发出绘制指令
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+}
+
 int main()
 {
     if (!mApp->init(800, 600)) return -1;
@@ -136,13 +225,14 @@ int main()
     GL_CALL(glViewport(0,0,800,600));
     GL_CALL(glClearColor(0.2f,0.3f,0.3f,1.0f));
 
+    prepareShader();
     //prepare();
     //prepareSingleBuffer();
     prepareInterleavedBuffer();
 
     while (mApp->update())
     {
-        GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
+        render();
     }
 
     mApp->destroy();
