@@ -34,6 +34,42 @@ void prepareVBO()
     GL_CALL(glDeleteBuffers(3, vboArr));
 }
 
+void prepareVAO()
+{
+    float positions[] = {
+        -0.5f, -0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f,
+         0.0f,  0.5f, 0.0f,
+         0.5f,  0.5f, 0.0f,
+    };
+
+    unsigned int indices[] = {
+        0, 1, 2,
+        2, 1, 3
+    };
+
+    GLuint posVBO = 0;
+    GL_CALL(glGenBuffers(1, &posVBO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, posVBO));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW));
+
+    GLuint EBO = 0;
+    GL_CALL(glGenBuffers(1, &EBO));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
+    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW));
+
+    GL_CALL(glGenVertexArrays(1, &VAO));
+    GL_CALL(glBindVertexArray(VAO));
+
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, posVBO));
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0));
+
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
+
+    GL_CALL(glBindVertexArray(0));
+}
+
 void prepare()
 {
     float vertices[] = {
@@ -129,6 +165,36 @@ void prepareInterleavedBuffer()
     GL_CALL(glBindVertexArray(0));//解绑VAO
 }
 
+void prepareVAOForGLTriangles()
+{
+    //准备顶点位置数据
+    float positions[] = {
+        -0.5f, -0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f,
+         0.0f,  0.5f, 0.0f,
+         0.5f,  0.5f, 0.0f,
+         0.8f,  0.8f, 0.0f,
+         0.8f,  0.0f, 0.0f
+    };
+
+    //
+    GLuint posVBO = 0;
+    GL_CALL(glGenBuffers(1, &posVBO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, posVBO));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW));
+
+    //
+    GL_CALL(glGenVertexArrays(1, &VAO));
+    GL_CALL(glBindVertexArray(VAO));
+
+    //
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, posVBO));//只有绑定了vbo下面的描述才会与此vbo相关
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0));
+
+    GL_CALL(glBindVertexArray(0));//解绑VAO
+}
+
 void prepareShader()
 {
     //编写vs与fs的源代码字符串
@@ -213,7 +279,13 @@ void render()
     GL_CALL(glBindVertexArray(VAO));
 
     //发出绘制指令
-    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+    //GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 6));
+    //GL_CALL(glDrawArrays(GL_TRIANGLE_STRIP, 0, 6));
+    //GL_CALL(glDrawArrays(GL_TRIANGLE_FAN, 0, 6));
+    //GL_CALL(glDrawArrays(GL_LINES, 0, 6));
+    //GL_CALL(glDrawArrays(GL_LINE_STRIP, 0, 6));
+
+    GL_CALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
 }
 
 int main()
@@ -228,7 +300,9 @@ int main()
     prepareShader();
     //prepare();
     //prepareSingleBuffer();
-    prepareInterleavedBuffer();
+    //prepareInterleavedBuffer();
+    //prepareVAOForGLTriangles();
+    prepareVAO();
 
     while (mApp->update())
     {
