@@ -1,10 +1,11 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <iostream>
 #include "wrapper/checkError.h"
 #include "application/Application.h"
+#include "glFrameWork/core.h"
+#include "glFrameWork/shader.h"
 
-GLuint program = 0, VAO = 0;
+GLuint VAO = 0;
+Shader* shader = nullptr;
 
 void onResize(int w, int h)
 {
@@ -39,19 +40,28 @@ void prepareVAO()
     float positions[] = {
         -0.5f, -0.5f, 0.0f,
          0.5f, -0.5f, 0.0f,
-         0.0f,  0.5f, 0.0f,
-         0.5f,  0.5f, 0.0f,
+         0.0f,  0.5f, 0.0f
+    };
+
+    float colors[] = {
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f
     };
 
     unsigned int indices[] = {
-        0, 1, 2,
-        2, 1, 3
+        0, 1, 2
     };
 
     GLuint posVBO = 0;
     GL_CALL(glGenBuffers(1, &posVBO));
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, posVBO));
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW));
+
+    GLuint colorVBO = 0;
+    GL_CALL(glGenBuffers(1, &colorVBO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, colorVBO));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW));
 
     GLuint EBO = 0;
     GL_CALL(glGenBuffers(1, &EBO));
@@ -64,6 +74,10 @@ void prepareVAO()
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, posVBO));
     GL_CALL(glEnableVertexAttribArray(0));
     GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0));
+
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, colorVBO));
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0));
 
     GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
 
@@ -197,74 +211,7 @@ void prepareVAOForGLTriangles()
 
 void prepareShader()
 {
-    //编写vs与fs的源代码字符串
-    const char* vertexShaderSource =
-        "#version 460 core\n"
-        "layout (location = 0) in vec3 aPos;\n"
-        "void main()\n"
-        "{\n"
-        "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-        "}\0";
-
-    const char* fragmentShaderSource =
-        "#version 330 core\n"
-        "out vec4 FragColor;\n"
-        "void main()\n"
-        "{\n"
-        "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-        "}\n\0";
-
-    //创建Shader程序（vs、fs)
-    GLuint vertex, fragment;
-    vertex = GL_CALL(glCreateShader(GL_VERTEX_SHADER));
-    fragment = GL_CALL(glCreateShader(GL_FRAGMENT_SHADER));
-
-    //为shader程序输入代码
-    GL_CALL(glShaderSource(vertex, 1, &vertexShaderSource, NULL));
-    GL_CALL(glShaderSource(fragment, 1, &fragmentShaderSource, NULL));
-
-    int success = 0;
-    char infoLog[1024];
-    //执行shader代码编译
-    GL_CALL(glCompileShader(vertex));
-    //检查vertex编译结果
-    GL_CALL(glGetShaderiv(vertex, GL_COMPILE_STATUS, &success));
-    if (!success)
-    {
-        GL_CALL(glGetShaderInfoLog(vertex, 1024, NULL, infoLog));
-        std::cout << "Error:Shader compile error --vertex\n" << infoLog << std::endl;
-    }
-
-    GL_CALL(glCompileShader(fragment));
-    //检查fragment编译结果
-    GL_CALL(glGetShaderiv(fragment, GL_COMPILE_STATUS, &success));
-    if (!success)
-    {
-        GL_CALL(glGetShaderInfoLog(fragment, 1024, NULL, infoLog));
-        std::cout << "Error:Shader compile error --fragment\n" << infoLog << std::endl;
-    }
-
-    //创建一个program壳子
-    program = GL_CALL(glCreateProgram());
-
-    //将vs与fs编译好的结果放到program壳子里
-    GL_CALL(glAttachShader(program, vertex));
-    GL_CALL(glAttachShader(program, fragment));
-
-    //执行program的链接操作，生成可执行shader程序
-    GL_CALL(glLinkProgram(program));
-
-    //检查链接错误
-    GL_CALL(glGetProgramiv(program, GL_LINK_STATUS, &success));
-    if (!success)
-    {
-        GL_CALL(glGetProgramInfoLog(program, 1024, NULL, infoLog));
-        std::cout << "Error:Shader link error\n" << infoLog << std::endl;
-    }
-
-    //清理链接完无用的shader
-    GL_CALL(glDeleteShader(vertex));
-    GL_CALL(glDeleteShader(fragment));
+    shader = new Shader("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
 }
 
 void render()
@@ -273,7 +220,7 @@ void render()
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
 
     //绑定当前program
-    GL_CALL(glUseProgram(program));
+    shader->begin();
 
     //绑定当前VAO
     GL_CALL(glBindVertexArray(VAO));
@@ -285,7 +232,9 @@ void render()
     //GL_CALL(glDrawArrays(GL_LINES, 0, 6));
     //GL_CALL(glDrawArrays(GL_LINE_STRIP, 0, 6));
 
-    GL_CALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
+    GL_CALL(glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0));
+    GL_CALL(glBindVertexArray(0));
+    shader->end();
 }
 
 int main()

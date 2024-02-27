@@ -9,15 +9,20 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_definitions(-DDEBUG_)
 
+
+file(GLOB ASSETS "./assets")
+file(COPY ${ASSETS} DESTINATION ${CMAKE_BINARY_DIR})
+
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/thirdParty/include)
 link_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/thirdParty/lib)
 
 add_subdirectory(wrapper)
 add_subdirectory(application)
+add_subdirectory(glFrameWork)
 
 SET(SRC_LIST main.cpp glad.c)
 
 #本工程所有cpp文件编译链接，生成exe
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 
-target_link_libraries(${PROJECT_NAME} glfw3.lib wrapper application)
+target_link_libraries(${PROJECT_NAME} glfw3.lib wrapper application fw)
