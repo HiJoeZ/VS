@@ -221,6 +221,11 @@ void render()
 
     //绑定当前program
     shader->begin();
+    //shader->setFloat("time", glfwGetTime());
+    //shader->setFloat("speed", 1.0);
+    //shader->setVec3("uColor", 0.4, 0.3, 0.5);
+    //float color[] = { 0.4, 0.3, 0.5 };
+    //shader->setVec3("uColor", color);
 
     //绑定当前VAO
     GL_CALL(glBindVertexArray(VAO));
