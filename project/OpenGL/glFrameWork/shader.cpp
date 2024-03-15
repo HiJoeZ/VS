@@ -3,6 +3,7 @@
 #include "shader.h"
 #include "shader.h"
 #include "shader.h"
+#include "shader.h"
 #include "../wrapper/checkError.h"
 #include <string>
 #include <fstream>
@@ -117,6 +118,13 @@ void Shader::setVec3(const std::string& name, const float* values)
     GLuint location = GL_CALL(glGetUniformLocation(m_program, name.c_str()));
 
     GL_CALL(glUniform3fv(location, 1, values));
+}
+
+void Shader::setInt(const std::string& name, int value)
+{
+    GLuint location = GL_CALL(glGetUniformLocation(m_program, name.c_str()));
+
+    GL_CALL(glUniform1i(location, value));
 }
 
 void Shader::checkShaderErrors(GLuint target, CheckType type)

@@ -10,9 +10,13 @@ public:
 
 	void begin();//开始使用当前的shader
 	void end();//结束使用当前的shader
+
 	void setFloat(const std::string&, float);
+
 	void setVec3(const std::string&, float, float, float);
 	void setVec3(const std::string&, const float*);
+
+	void setInt(const std::string&, int);
 
 private:
 	enum class CheckType

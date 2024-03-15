@@ -4,8 +4,12 @@
 #include "glFrameWork/core.h"
 #include "glFrameWork/shader.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "application/stb_image.h"
+
 GLuint VAO = 0;
 Shader* shader = nullptr;
+GLuint texture = 0;
 
 void onResize(int w, int h)
 {
@@ -53,6 +57,12 @@ void prepareVAO()
         0, 1, 2
     };
 
+    float uvs[] = {
+        0.0f, 0.0f, 
+        1.0f, 0.0f, 
+        0.5f, 1.0f
+    };
+
     GLuint posVBO = 0;
     GL_CALL(glGenBuffers(1, &posVBO));
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, posVBO));
@@ -62,6 +72,11 @@ void prepareVAO()
     GL_CALL(glGenBuffers(1, &colorVBO));
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, colorVBO));
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW));
+
+    GLuint uvVBO = 0;
+    GL_CALL(glGenBuffers(1, &uvVBO));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, uvVBO));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(uvs), uvs, GL_STATIC_DRAW));
 
     GLuint EBO = 0;
     GL_CALL(glGenBuffers(1, &EBO));
@@ -78,6 +93,10 @@ void prepareVAO()
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, colorVBO));
     GL_CALL(glEnableVertexAttribArray(1));
     GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0));
+
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, uvVBO));
+    GL_CALL(glEnableVertexAttribArray(2));
+    GL_CALL(glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0));
 
     GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
 
@@ -214,6 +233,39 @@ void prepareShader()
     shader = new Shader("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
 }
 
+void prepareTexture()
+{
+    //读取图片
+    int width, height, channels;
+
+    //反转Y轴
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* data = stbi_load("assets/textures/goku.jpg", &width, &height, &channels, STBI_rgb_alpha);
+
+    //生成纹理并激活单元绑定
+    GL_CALL(glGenTextures(1, &texture));
+    //激活
+    GL_CALL(glActiveTexture(GL_TEXTURE0));
+    //绑定
+    GL_CALL(glBindTexture(GL_TEXTURE_2D, texture));
+
+    //传输纹理数据,开辟显存
+    GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
+
+    //释放数据
+    stbi_image_free(data);
+
+    //设置纹理过滤方式
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+
+    //设置纹理包裹方式
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));//u方向
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));//v方向
+
+    //
+}
+
 void render()
 {
     //画布清理
@@ -226,6 +278,8 @@ void render()
     //shader->setVec3("uColor", 0.4, 0.3, 0.5);
     //float color[] = { 0.4, 0.3, 0.5 };
     //shader->setVec3("uColor", color);
+
+    shader->setInt("sampler", 0);
 
     //绑定当前VAO
     GL_CALL(glBindVertexArray(VAO));
@@ -257,6 +311,7 @@ int main()
     //prepareInterleavedBuffer();
     //prepareVAOForGLTriangles();
     prepareVAO();
+    prepareTexture();
 
     while (mApp->update())
     {
