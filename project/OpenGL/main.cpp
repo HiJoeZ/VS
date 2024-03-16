@@ -3,13 +3,11 @@
 #include "application/Application.h"
 #include "glFrameWork/core.h"
 #include "glFrameWork/shader.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "application/stb_image.h"
+#include "glFrameWork/texture.h"
 
 GLuint VAO = 0;
 Shader* shader = nullptr;
-GLuint texture = 0;
+Texture* texture = nullptr;
 
 void onResize(int w, int h)
 {
@@ -41,26 +39,52 @@ void prepareVBO()
 
 void prepareVAO()
 {
+    //float positions[] = {
+    //    -0.5f, -0.5f, 0.0f,
+    //     0.5f, -0.5f, 0.0f,
+    //     0.0f,  0.5f, 0.0f
+    //};
+
     float positions[] = {
         -0.5f, -0.5f, 0.0f,
          0.5f, -0.5f, 0.0f,
-         0.0f,  0.5f, 0.0f
+         -0.5f,  0.5f, 0.0f,
+         0.5f,  0.5f, 0.0f,
     };
+
+    //float colors[] = {
+    //    1.0f, 0.0f, 0.0f,
+    //    0.0f, 1.0f, 0.0f,
+    //    0.0f, 0.0f, 1.0f
+    //};
 
     float colors[] = {
         1.0f, 0.0f, 0.0f,
         0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f
+        0.0f, 0.0f, 1.0f,
+        0.5f, 0.5f, 0.5f
     };
+
+    //unsigned int indices[] = {
+    //    0, 1, 2
+    //};
 
     unsigned int indices[] = {
-        0, 1, 2
+        0, 1, 2,
+        2, 1, 3,
     };
 
+    //float uvs[] = {
+    //    0.0f, 0.0f, 
+    //    1.0f, 0.0f, 
+    //    0.5f, 1.0f
+    //};
+
     float uvs[] = {
-        0.0f, 0.0f, 
-        1.0f, 0.0f, 
-        0.5f, 1.0f
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        0.0f, 1.0f,
+        1.0f, 1.0f,
     };
 
     GLuint posVBO = 0;
@@ -235,37 +259,8 @@ void prepareShader()
 
 void prepareTexture()
 {
-    //读取图片
-    int width, height, channels;
-
-    //反转Y轴
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char* data = stbi_load("assets/textures/goku.jpg", &width, &height, &channels, STBI_rgb_alpha);
-
-    //生成纹理并激活单元绑定
-    GL_CALL(glGenTextures(1, &texture));
-    //激活
-    GL_CALL(glActiveTexture(GL_TEXTURE0));
-    //绑定
-    GL_CALL(glBindTexture(GL_TEXTURE_2D, texture));
-
-    //传输纹理数据,开辟显存
-    GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
-
-    //释放数据
-    stbi_image_free(data);
-
-    //设置纹理过滤方式
-    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-
-    //设置纹理包裹方式
-    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));//u方向
-    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));//v方向
-
-    //
+    texture = new Texture("assets/textures/goku.jpg", 0);
 }
-
 void render()
 {
     //画布清理
@@ -273,8 +268,8 @@ void render()
 
     //绑定当前program
     shader->begin();
-    //shader->setFloat("time", glfwGetTime());
-    //shader->setFloat("speed", 1.0);
+    shader->setFloat("time", glfwGetTime());
+    shader->setFloat("speed", 0.5);
     //shader->setVec3("uColor", 0.4, 0.3, 0.5);
     //float color[] = { 0.4, 0.3, 0.5 };
     //shader->setVec3("uColor", color);
@@ -291,7 +286,8 @@ void render()
     //GL_CALL(glDrawArrays(GL_LINES, 0, 6));
     //GL_CALL(glDrawArrays(GL_LINE_STRIP, 0, 6));
 
-    GL_CALL(glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0));
+    //GL_CALL(glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0));
+    GL_CALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
     GL_CALL(glBindVertexArray(0));
     shader->end();
 }
@@ -319,5 +315,7 @@ int main()
     }
 
     mApp->destroy();
+    delete texture;
+
     return 0;
 }
